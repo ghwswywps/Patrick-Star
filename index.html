@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#E30A17" />
+<meta name="description" content="派大星的衣柜 —— 土耳其主题 24 张记忆翻牌小游戏" />
+<title>派大星的衣柜 · 土耳其记忆翻牌</title>
+<!-- 内联 data: URI 图标（红底 + 白色月牙五角星），不外链文件；SVG 命名空间用百分号编码，避免被「无外链」检查误伤 -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%23E30A17'/%3E%3Ccircle%20cx='13.5'%20cy='16'%20r='7'%20fill='%23fff'/%3E%3Ccircle%20cx='16.6'%20cy='16'%20r='5.6'%20fill='%23E30A17'/%3E%3Cpath%20d='M24%2010.6l1.5%203.4%203.7.3-2.8%202.4.9%203.6-3.3-2-3.3%202%20.9-3.6-2.8-2.4%203.7-.3z'%20fill='%23fff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div id="app" class="app">
+
+  <!-- 主背景（assets/img/scene/bg.png，缺失时用 CSS 渐变兜底，不报错） -->
+  <img id="bg-art" class="bg-art" src="assets/img/scene/bg.png" alt="" aria-hidden="true" draggable="false" />
+
+  <!-- ===== HUD：步数 / 时间 / 分数 / 静音 ===== -->
+  <header id="hud" class="hud">
+    <div class="hud-item hud-moves">
+      <span class="hud-label">步数</span>
+      <span id="hud-moves" class="hud-value">0</span>
+    </div>
+    <div class="hud-item hud-time">
+      <span class="hud-label">时间</span>
+      <span id="hud-time" class="hud-value">00:00</span>
+    </div>
+    <div class="hud-item hud-score">
+      <span class="hud-label">分数</span>
+      <span id="hud-score" class="hud-value">0</span>
+    </div>
+    <button id="btn-mute" class="hud-mute" type="button" aria-pressed="false" aria-label="静音">🔊</button>
+  </header>
+
+  <!-- ===== 牌桌：24 张牌，顺序与引擎 getCards() 一一对应 ===== -->
+  <main class="stage">
+    <div id="board" class="board" role="group" aria-label="牌桌：24 张牌">
+
+      <div class="card" data-index="0" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="1" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="2" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="3" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="4" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="5" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="6" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="7" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="8" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="9" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="10" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="11" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="12" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="13" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="14" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="15" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="16" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="17" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="18" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="19" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="20" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="21" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="22" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+      <div class="card" data-index="23" data-type="" data-state="down">
+        <div class="card-inner"><div class="card-back"></div><div class="card-front"></div></div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ===== 开始界面 ===== -->
+  <section id="screen-start" class="screen screen-start is-visible" aria-label="开始界面">
+    <div class="start-panel">
+      <p class="kicker">TÜRKİYE · 衣柜里的秘密旅行</p>
+      <h1 class="game-title">派大星的衣柜</h1>
+      <p class="subtitle">翻开两张一样的图案，把它们配成一对</p>
+
+      <ul class="howto">
+        <li><span class="hi">12</span> 对牌，6 种图案，全在派大星的衣柜里</li>
+        <li>点两张：<b>一样</b>就消失，<b>不一样</b>自己翻回去</li>
+        <li>藏着一个彩蛋：<b>土耳其国旗 × 派大星降落伞</b></li>
+        <li>连击越猛分数越高，步数越少星星越多</li>
+      </ul>
+
+      <button id="btn-start" class="btn btn-primary" type="button">开始翻牌</button>
+      <p id="engine-warning" class="engine-warning" hidden>正在加载引擎…</p>
+      <p id="best-line" class="best-line" hidden></p>
+    </div>
+  </section>
+
+  <!-- ===== 通关界面 ===== -->
+  <section id="screen-win" class="screen screen-win" aria-label="通关界面" aria-hidden="true">
+    <img id="win-bg-art" class="win-bg" src="assets/img/scene/bg-win.png" alt="" aria-hidden="true" draggable="false" />
+    <div class="win-panel">
+      <p id="win-badge" class="win-badge" hidden>新纪录！</p>
+      <h2 class="win-title">衣柜整理完毕！</h2>
+      <p class="win-sub">星月 × 派大星 · 完美重合</p>
+
+      <div id="win-stars" class="win-stars" role="img" aria-label="星级">
+        <span class="star" style="--i:0">★</span>
+        <span class="star" style="--i:1">★</span>
+        <span class="star" style="--i:2">★</span>
+      </div>
+
+      <ul class="win-stats">
+        <li><span class="k">用时</span><span class="v" id="win-time">00:00</span></li>
+        <li><span class="k">步数</span><span class="v" id="win-moves">0</span></li>
+        <li><span class="k">最高连击</span><span class="v" id="win-combo">×0</span></li>
+        <li><span class="k">本局分数</span><span class="v" id="win-score">0</span></li>
+      </ul>
+
+      <p id="win-best" class="win-best">最佳：0 分 · 最少 0 步</p>
+      <button id="btn-restart" class="btn btn-primary" type="button">再来一局</button>
+    </div>
+  </section>
+
+  <!-- ===== 飘字 / 提示层（不接指针事件） ===== -->
+  <div id="fx-layer" class="fx-layer" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ===== 全屏特效层：PDT.Merge.play 的宿主，z-index 最高，不接指针事件 ===== -->
+  <div id="overlay-layer" class="overlay-layer" aria-hidden="true"></div>
+
+</div>
+
+<!-- 脚本顺序固定（契约 §2）：普通脚本、无预加载属性、不是 ES module，双击 file:// 也能跑 -->
+<script src="js/flag.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/merge-effect.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', function () {
+    if (window.PDT && window.PDT.UI && typeof window.PDT.UI.boot === 'function') {
+      window.PDT.UI.boot();
+    } else {
+      console.warn('[PDT] js/ui.js 未就绪，界面未挂载。');
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# 开发过程产物（截图 / 参考图 / 临时调试脚本），不进仓库也不进 Pages
+docs/ref/
+tools/_debug.cjs
+tools/last-report.txt
+_site/
+
+# 通用
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+*.tmp
