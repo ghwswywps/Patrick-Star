@@ -41,13 +41,15 @@
   var POOL_SIZE = 3;
 
   // 音效默认音量（0~1）
+  // 注意：click 是最高频触发的一个，用户反馈「点击噪音刺耳」，所以压到 0.34；
+  // flip 也跟着降一档，避免连翻时低频段的躁感。
   var SFX_VOL = {
-    flip: 0.85,
-    match: 0.90,
-    merge: 1.00,
-    win: 0.95,
-    mismatch: 0.70,
-    click: 0.80
+    flip: 0.62,
+    match: 0.82,
+    merge: 0.92,
+    win: 0.88,
+    mismatch: 0.55,
+    click: 0.34
   };
 
   // BGM 目标音量

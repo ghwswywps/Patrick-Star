@@ -2,7 +2,10 @@
  * js/merge-effect.js — PDT.Merge
  * 全屏「星月 × 派大星 · 完美重合」彩蛋特效
  *
- * 主体是重绘版梗图 assets/img/merge/easter-egg.png（960×1280）。
+ * 主体是重绘版梗图（已扣掉背景、带 alpha 通道）：
+ *   assets/img/merge/easter-egg-cut.webp  /  .png 兜底（809×1280）
+ *   原始未裁图是 easter-egg.png（960×1280）；裁切只去掉了左边 61px 透明边，
+ *   EGG_CUT 记录这个偏移，保证下面的月牙 / 伞冠拟合坐标依旧严丝合缝。
  * 严格国旗的白色月牙 / 五角星全部来自 PDT.Flag 的同一套法条几何，
  * 只做「等比缩放 + 旋转 + 平移」，绝不非等比变形。
  *
@@ -27,8 +30,8 @@
     caption: '星月 × 派大星 · 完美重合',
     bonus: '+300',
     showCaption: true,
-    eggUrl: 'assets/img/merge/easter-egg.png',
-    eggUrlAlt: 'assets/img/merge/easter-egg.webp',
+    eggUrl: 'assets/img/merge/easter-egg-cut.webp',
+    eggUrlAlt: 'assets/img/merge/easter-egg-cut.png',
     sparkUrl: 'assets/img/merge/spark.png',
     imageTimeout: 700,              // 图片预载上限，超时就用程序化兜底
     seed: 0
@@ -39,9 +42,9 @@
    *   月牙外圆定在 (387,350) r=200：上弧落进伞冠带内侧、下弧不压到派大星
    * 全部写成「图片宽高的比例」，任何尺寸下自动等比跟随。                 */
   var EGG_GEO = {
-    cx: 387 / 960,      // 0.403125  相对图片宽
-    cy: 350 / 1280,     // 0.273438  相对图片高
-    r: 200 / 960,       // 0.208333  相对图片宽（= 月牙外圆半径）
+    cx: 395 / 960,      // 0.411458  相对图片宽
+    cy: 322 / 1280,     // 0.251563  相对图片高
+    r: 172 / 960,       // 0.179167  相对图片宽（= 月牙外圆半径）
     // 伞冠带内缘的真实圆弧（实测拟合），落位后光沿它铺开 —— 这就是「月牙 = 伞冠的弧」
     arc: {
       cx: 465 / 960,    // 0.484375
@@ -51,6 +54,10 @@
       a1: -27.2         // 右端
     }
   };
+
+  /* 透明底梗图的裁切映射：原图 960×1280 → 抠图后 809×1280（左边裁掉 61px，上下不动）。
+   * 画的时候仍按「960×1280 的虚拟框」摆放，EGG_GEO 里的比例坐标因此完全不用改。 */
+  var EGG_CUT = { x: 61 / 960, w: 809 / 960 };
 
   // 幕边界（相对总时长的比例；基准 600 / 1500 / 2300 / 2700 ms）
   var ACT = {
@@ -240,13 +247,22 @@
     ctx.fill();
 
     ctx.globalAlpha = alpha;
-    var r = c.w * 0.055;
-    ctx.save();
-    roundRect(ctx, -c.w / 2, -c.h / 2, c.w, c.h, r);
-    ctx.clip();
     if (st.egg) {
-      ctx.drawImage(st.egg, -c.w / 2, -c.h / 2, c.w, c.h);
+      // 透明底贴纸：不套卡片圆角框（背景已扣掉，套框会露馅），
+      // 按 960×1280 虚拟框摆放，保证与 EGG_GEO 的月牙落点严丝合缝。
+      ctx.drawImage(
+        st.egg,
+        -c.w / 2 + EGG_CUT.x * c.w,
+        -c.h / 2,
+        c.w * EGG_CUT.w,
+        c.h
+      );
     } else {
+      // 兜底：没有图就自己画一张「卡片 + 粉伞」
+      var r = c.w * 0.055;
+      ctx.save();
+      roundRect(ctx, -c.w / 2, -c.h / 2, c.w, c.h, r);
+      ctx.clip();
       var bg = ctx.createLinearGradient(0, -c.h / 2, 0, c.h / 2);
       bg.addColorStop(0, '#25C9D6');
       bg.addColorStop(1, '#1B5FB0');
@@ -254,19 +270,46 @@
       ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
       // 兜底伞画在卡片局部坐标里（emblem 也在同一坐标系）
       drawFallbackParachute(ctx, st, st.emblem.cx - st.w / 2, st.emblem.cy - st.h / 2, st.emblem.r);
-    }
-    ctx.restore();
+      ctx.restore();
 
-    roundRect(ctx, -c.w / 2, -c.h / 2, c.w, c.h, r);
-    ctx.lineWidth = Math.max(2, c.w * 0.008);
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-    ctx.stroke();
+      roundRect(ctx, -c.w / 2, -c.h / 2, c.w, c.h, r);
+      ctx.lineWidth = Math.max(2, c.w * 0.008);
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
   /* ---------------- 光斑 ---------------- */
+  /* 程序化光斑贴图：spark.png 是不透明深底贴图，加法混合时仍会透出方块边，
+   * 所以这里直接用 radialGradient 生成一张真正透明底的圆形光斑（缓存复用）。 */
+  function makeGlowSprite(doc) {
+    var S = 128;
+    var cv = doc.createElement('canvas');
+    cv.width = cv.height = S;
+    var c2 = cv.getContext('2d');
+    var g = c2.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    g.addColorStop(0, 'rgba(255,255,246,1)');
+    g.addColorStop(0.22, 'rgba(255,238,176,0.88)');
+    g.addColorStop(0.52, 'rgba(255,192,66,0.34)');
+    g.addColorStop(1, 'rgba(255,140,20,0)');
+    c2.fillStyle = g;
+    c2.beginPath();
+    c2.arc(S / 2, S / 2, S / 2, 0, Math.PI * 2);
+    c2.fill();
+    return cv;
+  }
+
   function drawSparks(ctx, st) {
     if (!st.sparks.length) return;
+    var spr = st.glowSprite;
+    if (!spr) {
+      try {
+        spr = st.glowSprite = makeGlowSprite((ctx.canvas && ctx.canvas.ownerDocument) || root.document);
+      } catch (e) {
+        spr = null;
+      }
+    }
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     for (var i = 0; i < st.sparks.length; i++) {
@@ -276,8 +319,8 @@
       if (a <= 0.004) continue;
       var size = sp.size * (0.35 + 0.65 * (sp.life / sp.max));
       ctx.globalAlpha = a;
-      if (st.sprite) {
-        ctx.drawImage(st.sprite, sp.x - size / 2, sp.y - size / 2, size, size);
+      if (spr) {
+        ctx.drawImage(spr, sp.x - size / 2, sp.y - size / 2, size, size);
       } else {
         var rg = ctx.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, size / 2);
         rg.addColorStop(0, 'rgba(255,236,170,1)');
@@ -485,29 +528,37 @@
     st.sparkAlpha = st.fade;
     drawSparks(ctx, st);
 
-    /* ---- 文字 ---- */
+    /* ---- 文字：底部字幕 + 旁边飘出的 +300 ---- */
+    var capSize = Math.max(14, Math.min(w, h) * 0.036);
+    var capW = 0;
+    ctx.save();
+    ctx.font = '700 ' + capSize.toFixed(1) + 'px "Microsoft YaHei","PingFang SC","Noto Sans SC","Hiragino Sans GB",sans-serif';
+    try { capW = (ctx.measureText(st.caption || '').width) || 0; } catch (e) { capW = 0; }
+    ctx.restore();
+
     if (st.caption && st.capAlpha > 0.002) {
-      var size = Math.max(14, Math.min(w, h) * 0.036);
       ctx.save();
       ctx.globalAlpha = st.capAlpha * st.fade;
-      ctx.font = '700 ' + size.toFixed(1) + 'px "Microsoft YaHei","PingFang SC","Noto Sans SC","Hiragino Sans GB",sans-serif';
+      ctx.font = '700 ' + capSize.toFixed(1) + 'px "Microsoft YaHei","PingFang SC","Noto Sans SC","Hiragino Sans GB",sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowColor = 'rgba(70,6,20,0.75)';
-      ctx.shadowBlur = size * 0.7;
+      ctx.shadowBlur = capSize * 0.7;
       ctx.fillStyle = '#FFF6E8';
       ctx.fillText(st.caption, cx, h * 0.905);
       ctx.restore();
     }
     if (st.bonus && st.bonusAlpha > 0.002) {
       var bs = Math.max(16, Math.min(w, h) * 0.044);
-      var bx2 = Math.min(w - bs * 1.8, Math.max(bs * 1.8, cx + st.card.w * 0.42));
+      var bx2 = Math.min(w - bs * 2.0, cx + capW / 2 + bs * 1.15);
+      if (bx2 < bs * 2.0) bx2 = bs * 2.0;
       ctx.save();
       ctx.globalAlpha = st.bonusAlpha * st.fade;
       ctx.font = '800 ' + bs.toFixed(1) + 'px "Microsoft YaHei","PingFang SC",sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = Math.max(2, bs * 0.14);
+      ctx.lineJoin = 'round';
       ctx.strokeStyle = 'rgba(96,10,26,0.9)';
       ctx.strokeText(st.bonus, bx2, st.bonusY);
       ctx.fillStyle = '#FFD34D';
@@ -609,7 +660,7 @@
 
     var st = {
       ctx: ctx, dpr: dpr, cw: 1, ch: 1, w: 0, h: 0,
-      p: 0, fade: 1, capAlpha: 0, bonusAlpha: 0, bonusRise: 0,
+      p: 0, fade: 1, capAlpha: 0, bonusAlpha: 0, bonusRise: 0, bonusY: 0,
       card: { w: 100, h: 133 }, cardRectX: 0, cardRectY: 0,
       cardScale: 1, cardDy: 0, cardRot: 0, cardAlpha: 1,
       emblem: { cx: 0, cy: 0, r: 50, k: 200 },
@@ -660,7 +711,7 @@
     function cancel() { finish('superseded'); }
 
     function spawnSparks() {
-      var n = 34, base = st.emblem.r * 1.55;
+      var n = 40, base = st.emblem.r * 1.60;
       var ax = st.emblem.cx, ay = st.emblem.cy;
       var seed = (+o.seed || 7654321);
       function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
@@ -672,7 +723,7 @@
           x: ax + Math.cos(ang) * rr,
           y: ay + Math.sin(ang) * rr,
           vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd - base * 0.25,
-          size: base * (0.14 + rnd() * 0.20),
+          size: base * (0.18 + rnd() * 0.24),
           life: 1, max: 1, age: 0,
           dur: 0.40 + rnd() * 0.35
         });
@@ -694,7 +745,7 @@
       var tb = seg(p, ACT.starLand + 0.02, ACT.fadeStart + 0.02);
       st.bonusAlpha = clamp01(tb * 3) * (1 - seg(p, ACT.burst - 0.01, ACT.burst + 0.10));
       st.bonusRise = easeOutCubic(tb) * (st.h * 0.070);
-      st.bonusY = st.h * 0.885 - st.bonusRise;
+      st.bonusY = st.h * 0.905 - st.bonusRise;
 
       if (p >= ACT.starLand) {
         if (!st._spawned) { st._spawned = true; spawnSparks(); }
@@ -739,7 +790,7 @@
         img.onload = function () {
           if (!alive) return;
           // spark.png 偏白，染成金色再走加法混合，才是「金色粒子」
-          st.sprite = tintSprite(doc, img, '#FFC24A') || img;
+          st.sprite = tintSprite(doc, img, '#FFB020') || img;
         };
         img.onerror = function () { st.sprite = null; };
         img.src = resolveUrl(doc, o.sparkUrl);
